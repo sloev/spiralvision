@@ -3,5 +3,4 @@
 **/*.rs.bk
 .DS_Store
 *.wav
-*.mp4*.wav
 *.mp4

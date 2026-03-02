@@ -61,7 +61,7 @@ impl Encoder {
                 if self.phi_b > 2.0 * PI { self.phi_b -= 2.0 * PI; }
                 
                 // Envelope
-                // In SpiraVision, we map [0,1] to [0.1, 1.0].
+                // In SpiralVision, we map [0,1] to [0.1, 1.0].
                 // The true peak tracker accurately reflects this.
                 let env_a = A_MIN + yuv_a.1 * (A_MAX - A_MIN);
                 let env_b = A_MIN + yuv_b.2 * (A_MAX - A_MIN);

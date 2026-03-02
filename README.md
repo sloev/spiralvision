@@ -1,14 +1,14 @@
-# <img src=".github/assets/logo.png" width="48" align="left"> SpiraVision-10
+# <img src=".github/assets/logo.png" width="48" align="left"> SpiralVision-10
 
-SpiraVision-10 is a highly lossy, analog-oriented video protocol designed to encode 10 fps, 4:3 color video over a 2-channel (stereo) audio waveform. It is designed to be precise and performant, capable of running on low-power hardware like a Raspberry Pi.
+SpiralVision-10 is a highly lossy, analog-oriented video protocol designed to encode 10 fps, 4:3 color video over a 2-channel (stereo) audio waveform. It is designed to be precise and performant, capable of running on low-power hardware like a Raspberry Pi.
 
 ## Example Output
-Watch an example of the decoded SpiraVision-10 signal here:  
-[![SpiraVision-10 Example Output](https://img.youtube.com/vi/k_lY_UmP844/0.jpg)](https://youtu.be/k_lY_UmP844)
+Watch an example of the decoded SpiralVision-10 signal here:  
+[![SpiralVision-10 Example Output](https://img.youtube.com/vi/k_lY_UmP844/0.jpg)](https://youtu.be/k_lY_UmP844)
 
 ## Prerequisites (Ubuntu/Debian)
 
-To run SpiraVision-10, you need `ffmpeg` for video processing and some system libraries for audio and UI.
+To run SpiralVision-10, you need `ffmpeg` for video processing and some system libraries for audio and UI.
 
 ```bash
 # Update and install system dependencies
@@ -21,7 +21,7 @@ If you want to use the Decoder Mode to output to a virtual webcam, install `v4l2
 
 ```bash
 sudo apt install -y v4l2loopback-dkms
-sudo modprobe v4l2loopback devices=1 video_nr=10 card_label="SpiraVision" exclusive_caps=1
+sudo modprobe v4l2loopback devices=1 video_nr=10 card_label="SpiralVision" exclusive_caps=1
 ```
 This will create `/dev/video10` which you can use as an output in Decoder Mode.
 
@@ -48,6 +48,6 @@ cargo run --release
 ```
 
 ### Usage
-- **Encoder Mode:** Convert a video file or live camera feed into SpiraVision audio. You can output to your speakers or save to a `.wav` file.
-- **Decoder Mode:** Convert SpiraVision audio (from a file or microphone) back into video. You can output to a video file or a virtual webcam.
+- **Encoder Mode:** Convert a video file or live camera feed into SpiralVision audio. You can output to your speakers or save to a `.wav` file.
+- **Decoder Mode:** Convert SpiralVision audio (from a file or microphone) back into video. You can output to a video file or a virtual webcam.
 - **Preview:** Both modes provide a real-time preview of the signal processing.

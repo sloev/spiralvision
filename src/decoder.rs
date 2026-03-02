@@ -14,6 +14,8 @@ pub struct Decoder {
     last_zc_r: f32,
     current_freq_l: f32,
     current_freq_r: f32,
+    state_l: i8,
+    state_r: i8,
     
     env_l: f32,
     env_r: f32,
@@ -42,6 +44,8 @@ impl Decoder {
             last_zc_r: 0.0,
             current_freq_l: 0.0,
             current_freq_r: 0.0,
+            state_l: 0,
+            state_r: 0,
             env_l: 0.0,
             env_r: 0.0,
             y_buf: vec![0.0; W * H],
@@ -57,21 +61,28 @@ impl Decoder {
 
     pub fn process_samples(&mut self, samples: &[(f32, f32)]) {
         let dt = 1.0 / AUDIO_RATE as f32;
+        let hyst = 0.05; // 5% hysteresis to reject noise
         
         for &(l, r) in samples {
             self.global_time += dt;
             
-            // 1. Frequency Tracking
-            if (self.last_l <= 0.0 && l > 0.0) || (self.last_l >= 0.0 && l < 0.0) {
-                let period = (self.global_time - self.last_zc_l) * 2.0;
+            // 1. Robust Frequency Tracking with Hysteresis
+            let new_state_l = if l > hyst { 1 } else if l < -hyst { -1 } else { self.state_l };
+            if self.state_l == -1 && new_state_l == 1 {
+                let period = (self.global_time - self.last_zc_l);
                 if period > 0.0 { self.current_freq_l = 1.0 / period; }
                 self.last_zc_l = self.global_time;
             }
-            if (self.last_r <= 0.0 && r > 0.0) || (self.last_r >= 0.0 && r < 0.0) {
-                let period = (self.global_time - self.last_zc_r) * 2.0;
+            self.state_l = new_state_l;
+
+            let new_state_r = if r > hyst { 1 } else if r < -hyst { -1 } else { self.state_r };
+            if self.state_r == -1 && new_state_r == 1 {
+                let period = (self.global_time - self.last_zc_r);
                 if period > 0.0 { self.current_freq_r = 1.0 / period; }
                 self.last_zc_r = self.global_time;
             }
+            self.state_r = new_state_r;
+            
             self.last_l = l;
             self.last_r = r;
             

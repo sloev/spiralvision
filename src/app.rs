@@ -15,7 +15,7 @@ pub enum Mode {
     Decoder,
 }
 
-pub struct SpiraVisionApp {
+pub struct SpiralVisionApp {
     mode: Mode,
     
     // Encoder settings
@@ -43,7 +43,7 @@ pub struct SpiraVisionApp {
     stop_tx: Option<Sender<()>>,
 }
 
-impl Default for SpiraVisionApp {
+impl Default for SpiralVisionApp {
     fn default() -> Self {
         let video_devices = Self::list_video_devices();
         let default_video = video_devices.first().cloned().unwrap_or("/dev/video0".to_string());
@@ -69,7 +69,7 @@ impl Default for SpiraVisionApp {
     }
 }
 
-impl eframe::App for SpiraVisionApp {
+impl eframe::App for SpiralVisionApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -268,7 +268,7 @@ impl eframe::App for SpiraVisionApp {
     }
 }
 
-impl SpiraVisionApp {
+impl SpiralVisionApp {
     fn list_video_devices() -> Vec<String> {
         let mut devices = Vec::new();
         if let Ok(entries) = std::fs::read_dir("/dev") {

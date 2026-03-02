@@ -1,7 +1,7 @@
-# SpiraVision-10: Protocol Specification
+# SpiralVision-10: Protocol Specification
 
 ## Overview
-SpiraVision-10 is a highly lossy, analog-oriented video protocol designed to encode 10 fps, 4:3 color video over a 2-channel (stereo) audio waveform bounded by a 15 kHz frequency limit. It utilizes a dual-interlaced, dynamically morphing superellipse geometry, multiplexing Luma via Frequency Modulation (FM) and Chroma via Amplitude Modulation (AM).
+SpiralVision-10 is a highly lossy, analog-oriented video protocol designed to encode 10 fps, 4:3 color video over a 2-channel (stereo) audio waveform bounded by a 15 kHz frequency limit. It utilizes a dual-interlaced, dynamically morphing superellipse geometry, multiplexing Luma via Frequency Modulation (FM) and Chroma via Amplitude Modulation (AM).
 
 ## 1. System Parameters
 * **Target Framerate:** 10 fps (T_frame = 0.1 seconds)
@@ -17,7 +17,7 @@ SpiraVision-10 is a highly lossy, analog-oriented video protocol designed to enc
     * AM Chroma Maximum (1.0): A_max = 1.0
 
 ## 2. Spatial Geometry: The Morphing Superellipse
-To map a 2D image matrix into a 1D continuous array of samples, SpiraVision-10 uses a center-outward spiral that begins as a circle (1:1 aspect ratio) and morphs into a rectangle (4:3 aspect ratio) at the outer bounds, perfectly filling the display without wasting coordinate mapping on non-visible regions.
+To map a 2D image matrix into a 1D continuous array of samples, SpiralVision-10 uses a center-outward spiral that begins as a circle (1:1 aspect ratio) and morphs into a rectangle (4:3 aspect ratio) at the outer bounds, perfectly filling the display without wasting coordinate mapping on non-visible regions.
 
 Let W be image width, H be image height, and N be total samples per frame (4800).
 For a given sample index i in [0, N-1], define normalized progress p = i / N.
@@ -49,7 +49,7 @@ Because the left and right audio channels are sampled simultaneously, they map t
 *(Note: Calculated coordinates should be clamped to 0 <= X < W and 0 <= Y < H and rounded to nearest integers).*
 
 ## 3. Signal Multiplexing (FM + AM)
-SpiraVision-10 encodes detail (Luma) into the phase/frequency to survive tape saturation, and color (Chroma) into the amplitude to allow graceful analog decay.
+SpiralVision-10 encodes detail (Luma) into the phase/frequency to survive tape saturation, and color (Chroma) into the amplitude to allow graceful analog decay.
 
 For each audio sample t, extract the source pixels at [X_A, Y_A] and [X_B, Y_B]. Convert these pixels to YUV_A and YUV_B, scaled to [0.0, 1.0].
 

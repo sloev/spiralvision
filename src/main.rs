@@ -1,10 +1,4 @@
-mod app;
-mod decoder;
-mod encoder;
-mod io;
-mod protocol;
-
-use app::SpiraVisionApp;
+use spiralvision::app::SpiralVisionApp;
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
@@ -13,8 +7,8 @@ fn main() -> eframe::Result<()> {
         ..Default::default()
     };
     eframe::run_native(
-        "SpiraVision-10 Protocol",
+        "SpiralVision-10 Protocol",
         options,
-        Box::new(|_cc| Ok(Box::new(SpiraVisionApp::default()))),
+        Box::new(|_cc| Ok(Box::new(SpiralVisionApp::default()))),
     )
 }

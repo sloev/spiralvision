@@ -44,7 +44,7 @@ jobs:
         cp logo.png AppDir/spiralvision.png
         
         echo "[Desktop Entry]" > AppDir/spiralvision.desktop
-        echo "Name=SpiraVision" >> AppDir/spiralvision.desktop
+        echo "Name=SpiralVision" >> AppDir/spiralvision.desktop
         echo "Exec=spiralvision" >> AppDir/spiralvision.desktop
         echo "Icon=spiralvision" >> AppDir/spiralvision.desktop
         echo "Type=Application" >> AppDir/spiralvision.desktop
@@ -58,7 +58,7 @@ jobs:
         chmod +x AppDir/AppRun
 
     - name: Build AppImage
-      run: ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir SpiraVision-x86_64.AppImage
+      run: ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir SpiralVision-x86_64.AppImage
 
     - name: Rename Binary
       run: mv target/release/spiralvision target/release/spiralvision-linux-x86_64
@@ -72,16 +72,16 @@ jobs:
     - name: Upload AppImage
       uses: actions/upload-artifact@v4
       with:
-        name: SpiraVision-x86_64.AppImage
-        path: SpiraVision-x86_64.AppImage
+        name: SpiralVision-x86_64.AppImage
+        path: SpiralVision-x86_64.AppImage
 
     - name: Generate Release Notes
       run: |
-        echo "## SpiraVision-10 Continuous Build" > release_notes.md
+        echo "## SpiralVision-10 Continuous Build" > release_notes.md
         echo "This is an automated build from the latest master commit." >> release_notes.md
         echo "" >> release_notes.md
         echo "### Artifacts" >> release_notes.md
-        echo "- \`SpiraVision-x86_64.AppImage\`: Portable Linux AppImage. Just download, \`chmod +x\`, and run! Contains built-in logo and desktop integration." >> release_notes.md
+        echo "- \`SpiralVision-x86_64.AppImage\`: Portable Linux AppImage. Just download, \`chmod +x\`, and run! Contains built-in logo and desktop integration." >> release_notes.md
         echo "- \`spiralvision-linux-x86_64\`: Raw 64-bit Linux executable." >> release_notes.md
         echo "" >> release_notes.md
         echo "### Requirements" >> release_notes.md
@@ -100,6 +100,6 @@ jobs:
         prerelease: false
         files: |
           target/release/spiralvision-linux-x86_64
-          SpiraVision-x86_64.AppImage
+          SpiralVision-x86_64.AppImage
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

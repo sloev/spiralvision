@@ -88,11 +88,11 @@ impl Decoder {
             }
             
             // 3. Sync Pulse Detection
-            let is_sync_sig = self.current_freq_l > 800.0 && self.current_freq_l < 1200.0 && self.env_l > 0.8;
+            let is_sync_sig = self.current_freq_l > 750.0 && self.current_freq_l < 1250.0 && self.env_l > 0.4;
             if is_sync_sig {
                 self.sync_consecutive += 1;
             } else {
-                if self.sync_consecutive > 100 {
+                if self.sync_consecutive > 60 { // Relaxed for tape wow/flutter (was 100)
                     self.emit_frame(); // Emit any previous frame
                     self.in_sync = true;
                     self.sample_count = 0;

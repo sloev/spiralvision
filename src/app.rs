@@ -395,13 +395,31 @@ impl SpiraVisionApp {
                     let mut samples = Vec::new();
                     
                     if let Some(reader) = &mut wav_reader {
-                        let mut iter = reader.samples::<f32>();
-                        for _ in 0..4800 { // Read roughly 1 frame of samples
-                            if let (Some(Ok(l)), Some(Ok(r))) = (iter.next(), iter.next()) {
-                                samples.push((l, r));
-                            } else {
-                                break;
+                        let spec = reader.spec();
+                        if spec.sample_format == hound::SampleFormat::Float {
+                            let mut iter = reader.samples::<f32>();
+                            for _ in 0..4800 {
+                                if let (Some(Ok(l)), Some(Ok(r))) = (iter.next(), iter.next()) {
+                                    samples.push((l, r));
+                                } else { break; }
                             }
+                        } else if spec.bits_per_sample == 24 {
+                            let mut iter = reader.samples::<i32>();
+                            for _ in 0..4800 {
+                                if let (Some(Ok(l)), Some(Ok(r))) = (iter.next(), iter.next()) {
+                                    samples.push((l as f32 / 8388607.0, r as f32 / 8388607.0));
+                                } else { break; }
+                            }
+                        } else if spec.bits_per_sample == 16 {
+                            let mut iter = reader.samples::<i16>();
+                            for _ in 0..4800 {
+                                if let (Some(Ok(l)), Some(Ok(r))) = (iter.next(), iter.next()) {
+                                    samples.push((l as f32 / 32767.0, r as f32 / 32767.0));
+                                } else { break; }
+                            }
+                        } else {
+                            eprintln!("Unsupported bit depth: {}", spec.bits_per_sample);
+                            break;
                         }
                         if samples.is_empty() { break; }
                         // Remove sleep to process file as fast as possible for offline decoding

@@ -2,6 +2,10 @@
 
 SpiraVision-10 is a highly lossy, analog-oriented video protocol designed to encode 10 fps, 4:3 color video over a 2-channel (stereo) audio waveform. It is designed to be precise and performant, capable of running on low-power hardware like a Raspberry Pi.
 
+## Example Output
+Watch an example of the decoded SpiraVision-10 signal here:  
+[![SpiraVision-10 Example Output](https://img.youtube.com/vi/k_lY_UmP844/0.jpg)](https://youtu.be/k_lY_UmP844)
+
 ## Prerequisites (Ubuntu/Debian)
 
 To run SpiraVision-10, you need `ffmpeg` for video processing and some system libraries for audio and UI.

@@ -1,5 +1,4 @@
-use std::process::{Command, Stdio, ChildStdout};
-use std::io::Read;
+use std::process::{Command, Stdio};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use crossbeam_channel::{Sender, Receiver};
 use crate::protocol::{W, H, AUDIO_RATE};

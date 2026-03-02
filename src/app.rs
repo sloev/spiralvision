@@ -1,5 +1,4 @@
 use eframe::egui;
-use std::sync::{Arc, Mutex};
 use std::thread;
 use std::io::{Read, Write};
 use crossbeam_channel::{unbounded, Sender, Receiver};
@@ -7,7 +6,7 @@ use crate::protocol::{W, H};
 use crate::encoder::Encoder;
 use crate::decoder::Decoder;
 use crate::io::{start_ffmpeg_reader, start_ffmpeg_writer, start_audio_output, start_audio_input};
-use image::{ColorType, RgbImage};
+
 
 #[derive(PartialEq)]
 pub enum Mode {

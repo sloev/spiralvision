@@ -1,6 +1,6 @@
 use spiralvision::encoder::Encoder;
 use spiralvision::decoder::Decoder;
-use spiralvision::protocol::{W, H, N};
+use spiralvision::protocol::{W, H};
 
 #[test]
 fn test_black_frame() {
@@ -22,12 +22,8 @@ fn test_black_frame() {
     
     let out_frame = decoder.frames.pop().unwrap();
     
-    let mut black_count = 0;
     let mut red_count = 0;
     for i in 0..(W*H) {
-        if out_frame[i*3] < 50 && out_frame[i*3+1] < 50 && out_frame[i*3+2] < 50 {
-            black_count += 1;
-        }
         if out_frame[i*3] > 200 && out_frame[i*3+1] < 50 && out_frame[i*3+2] < 50 {
             red_count += 1;
         }
@@ -67,4 +63,5 @@ fn test_uv_neutral() {
         }
     }
     assert_eq!(tinted, 0, "White frame should not have tinted artifacts");
+    assert_eq!(pure_white, W * H, "White frame should be purely white");
 }

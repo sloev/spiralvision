@@ -69,7 +69,7 @@ impl Decoder {
             // 1. Robust Frequency Tracking with Hysteresis
             let new_state_l = if l > hyst { 1 } else if l < -hyst { -1 } else { self.state_l };
             if self.state_l == -1 && new_state_l == 1 {
-                let period = (self.global_time - self.last_zc_l);
+                let period = self.global_time - self.last_zc_l;
                 if period > 0.0 { self.current_freq_l = 1.0 / period; }
                 self.last_zc_l = self.global_time;
             }
@@ -77,7 +77,7 @@ impl Decoder {
 
             let new_state_r = if r > hyst { 1 } else if r < -hyst { -1 } else { self.state_r };
             if self.state_r == -1 && new_state_r == 1 {
-                let period = (self.global_time - self.last_zc_r);
+                let period = self.global_time - self.last_zc_r;
                 if period > 0.0 { self.current_freq_r = 1.0 / period; }
                 self.last_zc_r = self.global_time;
             }

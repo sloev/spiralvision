@@ -2,7 +2,6 @@ pub const W: usize = 320;
 pub const H: usize = 240;
 pub const N: usize = 4800;
 pub const K_WIND: f32 = 150.0;
-pub const FPS: f32 = 10.0;
 pub const AUDIO_RATE: u32 = 48000;
 pub const SYNC_SAMPLES: usize = 240; // 5ms * 48kHz
 

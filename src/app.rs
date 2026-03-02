@@ -73,8 +73,12 @@ impl eframe::App for SpiraVisionApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.selectable_value(&mut self.mode, Mode::Encoder, "Encoder Mode");
-                ui.selectable_value(&mut self.mode, Mode::Decoder, "Decoder Mode");
+                if ui.selectable_value(&mut self.mode, Mode::Encoder, "Encoder Mode").changed() {
+                    self.stop_process();
+                }
+                if ui.selectable_value(&mut self.mode, Mode::Decoder, "Decoder Mode").changed() {
+                    self.stop_process();
+                }
                 
                 if ui.button("Refresh Devices").clicked() {
                     self.video_devices = Self::list_video_devices();
@@ -87,26 +91,39 @@ impl eframe::App for SpiraVisionApp {
                 Mode::Encoder => {
                     ui.heading("Encoder (Video to Audio)");
                     ui.horizontal(|ui| {
-                        ui.radio_value(&mut self.enc_is_device, true, "Video Device");
-                        ui.radio_value(&mut self.enc_is_device, false, "Video File");
+                        if ui.radio_value(&mut self.enc_is_device, true, "Video Device").changed() {
+                            self.stop_process();
+                        }
+                        if ui.radio_value(&mut self.enc_is_device, false, "Video File").changed() {
+                            self.stop_process();
+                        }
                     });
                     
                     if self.enc_is_device {
+                        let mut changed = false;
                         egui::ComboBox::from_id_salt("enc_vid_src")
                             .selected_text(&self.enc_input_path)
                             .show_ui(ui, |ui| {
                                 for dev in &self.video_devices {
-                                    ui.selectable_value(&mut self.enc_input_path, dev.clone(), dev);
+                                    if ui.selectable_value(&mut self.enc_input_path, dev.clone(), dev).changed() {
+                                        changed = true;
+                                    }
                                 }
                             });
+                        if changed {
+                            self.stop_process();
+                        }
                     } else {
                         ui.horizontal(|ui| {
-                            ui.text_edit_singleline(&mut self.enc_input_path);
+                            if ui.text_edit_singleline(&mut self.enc_input_path).changed() {
+                                self.stop_process();
+                            }
                             if ui.button("Browse...").clicked() {
                                 if let Some(path) = rfd::FileDialog::new()
                                     .add_filter("video", &["mp4", "mkv", "avi", "mov", "webm"])
                                     .pick_file() {
                                     self.enc_input_path = path.to_string_lossy().to_string();
+                                    self.stop_process();
                                 }
                             }
                         });
@@ -114,70 +131,101 @@ impl eframe::App for SpiraVisionApp {
                     
                     ui.horizontal(|ui| {
                         ui.label("Output:");
-                        ui.radio_value(&mut self.enc_audio_file, false, "Audio Output Device");
-                        ui.radio_value(&mut self.enc_audio_file, true, "Audio File (.wav)");
+                        if ui.radio_value(&mut self.enc_audio_file, false, "Audio Output Device").changed() {
+                            self.stop_process();
+                        }
+                        if ui.radio_value(&mut self.enc_audio_file, true, "Audio File (.wav)").changed() {
+                            self.stop_process();
+                        }
                     });
                     
                     if self.enc_audio_file {
                         ui.horizontal(|ui| {
-                            ui.text_edit_singleline(&mut self.enc_output_path);
+                            if ui.text_edit_singleline(&mut self.enc_output_path).changed() {
+                                self.stop_process();
+                            }
                             if ui.button("Save As...").clicked() {
                                 if let Some(path) = rfd::FileDialog::new()
                                     .add_filter("audio", &["wav"])
                                     .save_file() {
                                     self.enc_output_path = path.to_string_lossy().to_string();
+                                    self.stop_process();
                                 }
                             }
                         });
                     } else {
-                        ui.text_edit_singleline(&mut self.enc_output_path);
+                        if ui.text_edit_singleline(&mut self.enc_output_path).changed() {
+                            self.stop_process();
+                        }
                     }
                 }
                 Mode::Decoder => {
                     ui.heading("Decoder (Audio to Video)");
                     ui.horizontal(|ui| {
                         ui.label("Input:");
-                        ui.radio_value(&mut self.dec_audio_file, false, "Audio Input Device");
-                        ui.radio_value(&mut self.dec_audio_file, true, "Audio File (.wav)");
+                        if ui.radio_value(&mut self.dec_audio_file, false, "Audio Input Device").changed() {
+                            self.stop_process();
+                        }
+                        if ui.radio_value(&mut self.dec_audio_file, true, "Audio File (.wav)").changed() {
+                            self.stop_process();
+                        }
                     });
                     
                     if self.dec_audio_file {
                         ui.horizontal(|ui| {
-                            ui.text_edit_singleline(&mut self.dec_input_path);
+                            if ui.text_edit_singleline(&mut self.dec_input_path).changed() {
+                                self.stop_process();
+                            }
                             if ui.button("Browse...").clicked() {
                                 if let Some(path) = rfd::FileDialog::new()
                                     .add_filter("audio", &["wav"])
                                     .pick_file() {
                                     self.dec_input_path = path.to_string_lossy().to_string();
+                                    self.stop_process();
                                 }
                             }
                         });
                     } else {
-                        ui.text_edit_singleline(&mut self.dec_input_path);
+                        if ui.text_edit_singleline(&mut self.dec_input_path).changed() {
+                            self.stop_process();
+                        }
                     }
                     
                     ui.horizontal(|ui| {
                         ui.label("Output:");
-                        ui.radio_value(&mut self.dec_is_device, true, "Virtual Video Device");
-                        ui.radio_value(&mut self.dec_is_device, false, "Video File");
+                        if ui.radio_value(&mut self.dec_is_device, true, "Virtual Video Device").changed() {
+                            self.stop_process();
+                        }
+                        if ui.radio_value(&mut self.dec_is_device, false, "Video File").changed() {
+                            self.stop_process();
+                        }
                     });
                     
                     if self.dec_is_device {
-                         egui::ComboBox::from_id_salt("dec_vid_out")
+                        let mut changed = false;
+                        egui::ComboBox::from_id_salt("dec_vid_out")
                             .selected_text(&self.dec_output_path)
                             .show_ui(ui, |ui| {
                                 for dev in &self.video_devices {
-                                    ui.selectable_value(&mut self.dec_output_path, dev.clone(), dev);
+                                    if ui.selectable_value(&mut self.dec_output_path, dev.clone(), dev).changed() {
+                                        changed = true;
+                                    }
                                 }
                             });
+                        if changed {
+                            self.stop_process();
+                        }
                     } else {
                         ui.horizontal(|ui| {
-                            ui.text_edit_singleline(&mut self.dec_output_path);
+                            if ui.text_edit_singleline(&mut self.dec_output_path).changed() {
+                                self.stop_process();
+                            }
                             if ui.button("Save As...").clicked() {
                                 if let Some(path) = rfd::FileDialog::new()
                                     .add_filter("video", &["mp4", "mkv", "avi"])
                                     .save_file() {
                                     self.dec_output_path = path.to_string_lossy().to_string();
+                                    self.stop_process();
                                 }
                             }
                         });

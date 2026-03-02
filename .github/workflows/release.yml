@@ -1,8 +1,12 @@
 name: Release Build
 
 on:
-  push:
-    branches: [ "master" ]
+  workflow_run:
+    workflows: ["Tests"]
+    types:
+      - completed
+    branches:
+      - master
 
 env:
   CARGO_TERM_COLOR: always
@@ -13,6 +17,8 @@ concurrency:
   
 jobs:
   build:
+    # Only run if the Tests workflow was successful
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -20,6 +26,12 @@ jobs:
       attestations: write
     steps:
     - uses: actions/checkout@v4
+
+    - name: Generate Version Number
+      id: version
+      run: |
+        VERSION="v0.1.${{ github.run_number }}"
+        echo "release_version=$VERSION" >> $GITHUB_OUTPUT
 
     - name: Install dependencies
       run: |
@@ -77,11 +89,11 @@ jobs:
 
     - name: Generate Release Notes
       run: |
-        echo "## SpiralVision-10 Continuous Build" > release_notes.md
+        echo "## SpiralVision-10 Continuous Build (${{ steps.version.outputs.release_version }})" > release_notes.md
         echo "This is an automated build from the latest master commit." >> release_notes.md
         echo "" >> release_notes.md
         echo "### Artifacts" >> release_notes.md
-        echo "- \`spiralvision-linux-x86_64.AppImage\`: Portable Linux AppImage. Just download, \`chmod +x\`, and run! Contains built-in logo and desktop integration." >> release_notes.md
+        echo "- \`SpiralVision-x86_64.AppImage\`: Portable Linux AppImage. Just download, \`chmod +x\`, and run! Contains built-in logo and desktop integration." >> release_notes.md
         echo "- \`spiralvision-linux-x86_64\`: Raw 64-bit Linux executable." >> release_notes.md
         echo "" >> release_notes.md
         echo "### Requirements" >> release_notes.md
@@ -93,13 +105,14 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: latest
-        name: Latest Build (Linux x86_64)
+        tag_name: ${{ steps.version.outputs.release_version }}
+        name: Build ${{ steps.version.outputs.release_version }} (Linux x86_64)
         body_path: release_notes.md
         draft: false
         prerelease: false
+        make_latest: true
         files: |
           target/release/spiralvision-linux-x86_64
-          spiralvision-linux-x86_64.AppImage
+          SpiralVision-x86_64.AppImage
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

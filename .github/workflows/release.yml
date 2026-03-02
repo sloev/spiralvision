@@ -41,7 +41,7 @@ jobs:
       run: |
         mkdir -p AppDir/usr/bin
         cp target/release/spiralvision AppDir/usr/bin/
-        cp logo.png AppDir/spiralvision.png
+        cp .github/assets/logo.png AppDir/spiralvision.png
         
         echo "[Desktop Entry]" > AppDir/spiralvision.desktop
         echo "Name=SpiralVision" >> AppDir/spiralvision.desktop
@@ -58,7 +58,7 @@ jobs:
         chmod +x AppDir/AppRun
 
     - name: Build AppImage
-      run: ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir SpiralVision-x86_64.AppImage
+      run: ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir spiralvision-linux-x86_64.AppImage
 
     - name: Rename Binary
       run: mv target/release/spiralvision target/release/spiralvision-linux-x86_64
@@ -72,8 +72,8 @@ jobs:
     - name: Upload AppImage
       uses: actions/upload-artifact@v4
       with:
-        name: SpiralVision-x86_64.AppImage
-        path: SpiralVision-x86_64.AppImage
+        name: spiralvision-linux-x86_64.AppImage
+        path: spiralvision-linux-x86_64.AppImage
 
     - name: Generate Release Notes
       run: |
@@ -81,7 +81,7 @@ jobs:
         echo "This is an automated build from the latest master commit." >> release_notes.md
         echo "" >> release_notes.md
         echo "### Artifacts" >> release_notes.md
-        echo "- \`SpiralVision-x86_64.AppImage\`: Portable Linux AppImage. Just download, \`chmod +x\`, and run! Contains built-in logo and desktop integration." >> release_notes.md
+        echo "- \`spiralvision-linux-x86_64.AppImage\`: Portable Linux AppImage. Just download, \`chmod +x\`, and run! Contains built-in logo and desktop integration." >> release_notes.md
         echo "- \`spiralvision-linux-x86_64\`: Raw 64-bit Linux executable." >> release_notes.md
         echo "" >> release_notes.md
         echo "### Requirements" >> release_notes.md
@@ -100,6 +100,6 @@ jobs:
         prerelease: false
         files: |
           target/release/spiralvision-linux-x86_64
-          SpiralVision-x86_64.AppImage
+          spiralvision-linux-x86_64.AppImage
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

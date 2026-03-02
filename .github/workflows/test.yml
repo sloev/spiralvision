@@ -21,16 +21,29 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Cache APT packages
+      uses: actions/cache@v4
+      with:
+        path: ~/apt-cache
+        key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/test.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-apt-
+
     - name: Install dependencies
       run: |
+        mkdir -p ~/apt-cache
+        sudo cp -rn ~/apt-cache/. /var/cache/apt/archives/ || true
         sudo apt-get update
         sudo apt-get install -y ffmpeg libasound2-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libfontconfig1-dev
+        sudo cp -rn /var/cache/apt/archives/. ~/apt-cache/ || true
 
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
 
     - name: Rust Cache
       uses: swatinem/rust-cache@v2
+      with:
+        shared-key: "spiralvision-cache"
 
     - name: Run Tests
       run: cargo test --release

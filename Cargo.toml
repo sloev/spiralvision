@@ -1,0 +1,17 @@
+[package]
+name = "spiralvision"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = "0.29"
+egui = "0.29"
+image = "0.25"
+cpal = "0.15"
+hound = "3.5"
+crossbeam-channel = "0.5"
+parking_lot = "0.12"
+log = "0.4"
+env_logger = "0.11"
+rustfft = "6.2"
+rfd = "0.15"

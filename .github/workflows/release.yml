@@ -1,0 +1,43 @@
+name: Release Build
+
+on:
+  push:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg libasound2-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libfontconfig1-dev
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Build release
+      run: cargo build --release
+
+    - name: Upload Binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: spiralvision-linux
+        path: target/release/spiralvision
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: latest
+        name: Latest Release
+        draft: false
+        prerelease: false
+        files: target/release/spiralvision
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

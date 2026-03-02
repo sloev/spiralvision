@@ -32,19 +32,37 @@ jobs:
     - name: Build release
       run: cargo build --release
 
+    - name: Rename Binary
+      run: mv target/release/spiralvision target/release/spiralvision-linux-x86_64
+
     - name: Upload Binary
       uses: actions/upload-artifact@v4
       with:
-        name: spiralvision-linux
-        path: target/release/spiralvision
+        name: spiralvision-linux-x86_64
+        path: target/release/spiralvision-linux-x86_64
+
+    - name: Generate Release Notes
+      run: |
+        echo "## SpiraVision-10 Continuous Build" > release_notes.md
+        echo "This is an automated build from the latest master commit." >> release_notes.md
+        echo "" >> release_notes.md
+        echo "### Artifacts" >> release_notes.md
+        echo "- \`spiralvision-linux-x86_64\`: 64-bit Linux executable (compiled on Ubuntu)." >> release_notes.md
+        echo "" >> release_notes.md
+        echo "### Requirements" >> release_notes.md
+        echo "To run this binary, ensure you have the required dependencies installed:" >> release_notes.md
+        echo "\`\`\`bash" >> release_notes.md
+        echo "sudo apt update && sudo apt install -y ffmpeg libasound2-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libfontconfig1-dev" >> release_notes.md
+        echo "\`\`\`" >> release_notes.md
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
         tag_name: latest
-        name: Latest Release
+        name: Latest Build (Linux x86_64)
+        body_path: release_notes.md
         draft: false
         prerelease: false
-        files: target/release/spiralvision
+        files: target/release/spiralvision-linux-x86_64
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

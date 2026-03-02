@@ -77,7 +77,10 @@ jobs:
       run: |
         mkdir -p AppDir/usr/bin
         cp target/release/spiralvision AppDir/usr/bin/
+        
+        # Icon and Desktop integration
         cp .github/assets/logo.png AppDir/spiralvision.png
+        cp .github/assets/logo.png AppDir/.DirIcon
         
         echo "[Desktop Entry]" > AppDir/spiralvision.desktop
         echo "Name=SpiralVision" >> AppDir/spiralvision.desktop
@@ -94,7 +97,9 @@ jobs:
         chmod +x AppDir/AppRun
 
     - name: Build AppImage
-      run: ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir SpiralVision-x86_64.AppImage
+      run: |
+        ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir SpiralVision-x86_64.AppImage
+        chmod +x SpiralVision-x86_64.AppImage
 
     - name: Rename Binary
       run: mv target/release/spiralvision target/release/spiralvision-linux-x86_64

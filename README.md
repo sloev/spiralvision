@@ -1,4 +1,4 @@
-# SpiraVision-10
+# <img src=".github/assets/logo.png" width="48" align="left"> SpiraVision-10
 
 SpiraVision-10 is a highly lossy, analog-oriented video protocol designed to encode 10 fps, 4:3 color video over a 2-channel (stereo) audio waveform. It is designed to be precise and performant, capable of running on low-power hardware like a Raspberry Pi.
 

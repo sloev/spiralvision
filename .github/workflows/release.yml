@@ -32,6 +32,34 @@ jobs:
     - name: Build release
       run: cargo build --release
 
+    - name: Download AppImageTool
+      run: |
+        wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+        chmod +x appimagetool-x86_64.AppImage
+
+    - name: Prepare AppDir
+      run: |
+        mkdir -p AppDir/usr/bin
+        cp target/release/spiralvision AppDir/usr/bin/
+        cp logo.png AppDir/spiralvision.png
+        
+        echo "[Desktop Entry]" > AppDir/spiralvision.desktop
+        echo "Name=SpiraVision" >> AppDir/spiralvision.desktop
+        echo "Exec=spiralvision" >> AppDir/spiralvision.desktop
+        echo "Icon=spiralvision" >> AppDir/spiralvision.desktop
+        echo "Type=Application" >> AppDir/spiralvision.desktop
+        echo "Categories=AudioVideo;" >> AppDir/spiralvision.desktop
+        
+        # Create AppRun
+        echo '#!/bin/sh' > AppDir/AppRun
+        echo 'HERE="$(dirname "$(readlink -f "${0}")")"' >> AppDir/AppRun
+        echo 'export PATH="${HERE}/usr/bin:${PATH}"' >> AppDir/AppRun
+        echo 'exec spiralvision "$@"' >> AppDir/AppRun
+        chmod +x AppDir/AppRun
+
+    - name: Build AppImage
+      run: ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir SpiraVision-x86_64.AppImage
+
     - name: Rename Binary
       run: mv target/release/spiralvision target/release/spiralvision-linux-x86_64
 
@@ -41,16 +69,23 @@ jobs:
         name: spiralvision-linux-x86_64
         path: target/release/spiralvision-linux-x86_64
 
+    - name: Upload AppImage
+      uses: actions/upload-artifact@v4
+      with:
+        name: SpiraVision-x86_64.AppImage
+        path: SpiraVision-x86_64.AppImage
+
     - name: Generate Release Notes
       run: |
         echo "## SpiraVision-10 Continuous Build" > release_notes.md
         echo "This is an automated build from the latest master commit." >> release_notes.md
         echo "" >> release_notes.md
         echo "### Artifacts" >> release_notes.md
-        echo "- \`spiralvision-linux-x86_64\`: 64-bit Linux executable (compiled on Ubuntu)." >> release_notes.md
+        echo "- \`SpiraVision-x86_64.AppImage\`: Portable Linux AppImage. Just download, \`chmod +x\`, and run! Contains built-in logo and desktop integration." >> release_notes.md
+        echo "- \`spiralvision-linux-x86_64\`: Raw 64-bit Linux executable." >> release_notes.md
         echo "" >> release_notes.md
         echo "### Requirements" >> release_notes.md
-        echo "To run this binary, ensure you have the required dependencies installed:" >> release_notes.md
+        echo "To run this application, ensure you have the required system dependencies installed:" >> release_notes.md
         echo "\`\`\`bash" >> release_notes.md
         echo "sudo apt update && sudo apt install -y ffmpeg libasound2-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libfontconfig1-dev" >> release_notes.md
         echo "\`\`\`" >> release_notes.md
@@ -63,6 +98,8 @@ jobs:
         body_path: release_notes.md
         draft: false
         prerelease: false
-        files: target/release/spiralvision-linux-x86_64
+        files: |
+          target/release/spiralvision-linux-x86_64
+          SpiraVision-x86_64.AppImage
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

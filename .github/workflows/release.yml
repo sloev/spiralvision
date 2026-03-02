@@ -41,6 +41,9 @@ jobs:
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
 
+    - name: Rust Cache
+      uses: swatinem/rust-cache@v2
+
     - name: Build release
       run: cargo build --release
 

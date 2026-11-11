@@ -92,10 +92,10 @@ cargo test --workspace --release          # DSP + tape + frame-rate tests
 CI does **not** run on pushes. Run `./scripts/check.sh` locally, then push a tag:
 
 ```bash
-git tag v0.2.0 && git push origin v0.2.0   # builds Linux, Pi, Windows, macOS, Android + publishes the release
+git tag v0.2.1 && git push origin v0.2.1   # builds Linux, Pi, Windows, macOS, Android + publishes the release
 ```
 
-Or press *Run workflow* on the Actions tab to build artifacts without releasing.
+Or press *Run workflow* on the Actions tab: leave `release` empty to just build, or enter a new tag (e.g. `v0.2.1`) to create the tag and publish the release.
 Optional Android signing secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` (otherwise a throwaway debug key signs the APK).
 
 Cross-compiling locally (how the release builds were verified):

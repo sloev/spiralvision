@@ -1,14 +1,22 @@
 name: Build & Release
 
-# Runs ONLY when you ask: push a tag like v0.2.0, or click "Run workflow".
+# Runs ONLY when you ask: push a tag like v0.2.0, or click "Run workflow"
+# (fill in "release" with a new tag like v0.2.1 to build AND publish a release;
+# the tag is created on the commit that was built).
 # Day-to-day checks run locally with ./scripts/check.sh (saves Actions minutes).
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      release:
+        description: "Tag to create + publish, e.g. v0.2.1 (empty = build only)"
+        required: false
+        default: ""
 
 env:
   CARGO_TERM_COLOR: always
+  RELEASE_TAG: ${{ inputs.release || github.ref_name }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,9 +30,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: System deps (+ arm64 ALSA for the Pi build)
         run: |
-          sudo dpkg --add-architecture arm64
-          sudo sed -i '/^Types: deb$/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
-          printf 'Types: deb\nURIs: http://ports.ubuntu.com/ubuntu-ports/\nSuites: noble noble-updates\nComponents: main universe\nArchitectures: arm64\n' | sudo tee /etc/apt/sources.list.d/arm64-ports.sources
+          sudo ./scripts/apt-arm64.sh
           sudo apt-get update
           sudo apt-get install -y ffmpeg libasound2-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libfontconfig1-dev \
             gcc-aarch64-linux-gnu libasound2-dev:arm64 python3-pil
@@ -89,7 +95,7 @@ jobs:
             cargo build --release --target $t -p spiralvision -p spiralvision-cli
           done
       - name: Bundle .app
-        run: ./scripts/package-macos.sh "${GITHUB_REF_NAME#v}"
+        run: ./scripts/package-macos.sh "${RELEASE_TAG#v}"
       - uses: actions/upload-artifact@v4
         with:
           name: macos
@@ -118,14 +124,14 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: VERSION_NAME="${GITHUB_REF_NAME#v}" ./scripts/package-android.sh
+        run: VERSION_NAME="${RELEASE_TAG#v}" ./scripts/package-android.sh
       - uses: actions/upload-artifact@v4
         with:
           name: android
           path: dist/SpiralVision-android.apk
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.release != ''
     needs: [linux, windows, macos, android]
     runs-on: ubuntu-24.04
     permissions:
@@ -138,7 +144,9 @@ jobs:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          name: SpiralVision ${{ github.ref_name }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
+          name: SpiralVision ${{ env.RELEASE_TAG }}
           body_path: .github/release-notes.md
           make_latest: true
           files: dist/*

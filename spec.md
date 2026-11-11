@@ -1,107 +1,59 @@
-# SpiralVision-10: Protocol Specification
+# SpiralVision-10 Protocol Specification (rev B)
 
 ## Overview
-SpiralVision-10 is a highly lossy, analog-oriented video protocol designed to encode 10 fps, 4:3 color video over a 2-channel (stereo) audio waveform bounded by a 15 kHz frequency limit. It utilizes a dual-interlaced, dynamically morphing superellipse geometry, multiplexing Luma via Frequency Modulation (FM) and Chroma via Amplitude Modulation (AM).
+SpiralVision-10 carries 10 fps, 4:3 colour video in a 2-channel (stereo) audio signal that fits through a compact cassette (≈ 40 Hz – 14 kHz). Pixels are scanned along two interlaced spirals; luma is frequency-modulated, chroma is amplitude-modulated. Rev B adds a calibration chirp, guard samples, a uniform-density spiral and a flywheel decoder. Reference implementation: `crates/spiralvision-core`.
 
-## 1. System Parameters
-* **Target Framerate:** 10 fps (T_frame = 0.1 seconds)
-* **Audio Base Sample Rate:** 48,000 Hz standard (4,800 samples per frame)
-* **Audio Channels:** 2 (Left and Right)
-* **Color Space:** YUV (Luma Y, Chroma U, V), normalized to [0.0, 1.0]
-* **Frequency Allocation:**
-    * Sync Pulse: 1,000 Hz
-    * FM Luma Minimum (Black): f_min = 3,000 Hz
-    * FM Luma Maximum (White): f_max = 12,000 Hz
-* **Amplitude Allocation:**
-    * AM Chroma Minimum (0.0): A_min = 0.1 (To preserve the FM carrier for zero-crossing detection)
-    * AM Chroma Maximum (1.0): A_max = 1.0
+Rev B is **not** wire-compatible with rev A (the original 2-section frame).
 
-## 2. Spatial Geometry: The Morphing Superellipse
-To map a 2D image matrix into a 1D continuous array of samples, SpiralVision-10 uses a center-outward spiral that begins as a circle (1:1 aspect ratio) and morphs into a rectangle (4:3 aspect ratio) at the outer bounds, perfectly filling the display without wasting coordinate mapping on non-visible regions.
+## 1. System parameters
+| | |
+|---|---|
+| Picture | 320 × 240, 10 fps |
+| Audio | 48 000 Hz, 2 channels, float [-1, 1] — decoders must accept any rate and resample |
+| Samples per frame | N = 4800 (100 ms) |
+| Colour space | full-range BT.601 YUV, components in [0, 1] (U, V centred at 0.5) |
+| Luma (FM) | f = F_MIN + Y·(F_MAX − F_MIN), F_MIN = 3 kHz, F_MAX = 12 kHz |
+| Chroma (AM) | A = A_MIN + C·(A_MAX − A_MIN), A_MIN = 0.1, A_MAX = 1.0; left = U, right = V |
 
-Let W be image width, H be image height, and N be total samples per frame (4800).
-For a given sample index i in [0, N-1], define normalized progress p = i / N.
+## 2. Frame layout
+Phase is continuous per channel across the whole stream (no clicks).
 
-**Shape Variables:**
-1. Angle (theta): theta = K * sqrt(p) 
-   *(where K determines winding density, typically ~150)*
-2. Aspect Ratio (a): a(p) = 1.0 + ((W / H) - 1.0) * p
-3. Superellipse Exponent (n): n(p) = 2.0 + (8.0 * p)
+| samples | section | content (both channels) |
+|---|---|---|
+| 0 – 239 | SYNC | 1 kHz sine, amplitude 1.0 |
+| 240 – 335 | CAL-HI | linear chirp 2.5 → 13 kHz, amplitude 1.0 |
+| 336 – 431 | CAL-LO | linear chirp 13 → 2.5 kHz, amplitude 0.35 |
+| 432 – 455 | GUARD | repeats picture sample 0 |
+| 456 – 4775 | PICTURE | 4320 samples, j = 0 … 4319 |
+| 4776 – 4799 | GUARD | repeats picture sample 4319 |
 
-**Radius Calculation:**
-The base radius equation for the superellipse is defined as:
-r_base = ( |cos(theta) / a(p)|^n(p) + |sin(theta)|^n(p) )^(-1 / n(p))
+Chirp sample c (0 ≤ c < 96) of each half sits at t = (c + 0.5)/96 of the sweep.
 
-The scaled pixel radius is:
-R = p * (H / 2) * r_base
+## 3. Spiral geometry
+For picture sample j, progress p = (j + 0.5)/4320, normalised radius q = √p (Archimedean ⇒ constant line spacing and sample density):
 
-**Dual-Interlaced Coordinates (Left and Right Tracks):**
-Because the left and right audio channels are sampled simultaneously, they map to two separate spirals 180 degrees (PI radians) out of phase.
+```
+θ  = K·q                      K = 80
+a  = 1 + (W/H − 1)·q          aspect: circle → 4:3
+n  = 2 + (14 − 2)·q           superellipse exponent: circle → rounded rectangle
+rb = (|cos θ / a|^n + |sin θ|^n)^(−1/n)
+s  = q · (H/2) · 1.03
+u  = rb·cos θ·s,  v = rb·sin θ·s
+arm A (left):  x = (W−1)/2 + u,  y = (H−1)/2 + v
+arm B (right): x = (W−1)/2 − u,  y = (H−1)/2 − v      (arm A rotated by π)
+```
+Coordinates are clamped to the picture.
 
-* **Spiral A (Left Track) Pixel [X_A, Y_A]:**
-  X_A(p) = (W / 2) + R * a(p) * cos(theta)
-  Y_A(p) = (H / 2) + R * sin(theta)
+## 4. Encoder
+1. Convert RGB → YUV; Gaussian pre-filter luma (σ = 1.2 px) and chroma (σ = 3 px) to match what the spiral can carry.
+2. Emit SYNC and CAL sections.
+3. For each picture sample (with guards): bilinear-sample Y, U at arm A and Y, V at arm B; f_L, f_R from luma; A_L from U, A_R from V; advance the phase accumulators by 2π f / 48000; output A·sin φ.
 
-* **Spiral B (Right Track) Pixel [X_B, Y_B]:**
-  X_B(p) = (W / 2) + R * a(p) * cos(theta + PI)
-  Y_B(p) = (H / 2) + R * sin(theta + PI)
-
-*(Note: Calculated coordinates should be clamped to 0 <= X < W and 0 <= Y < H and rounded to nearest integers).*
-
-## 3. Signal Multiplexing (FM + AM)
-SpiralVision-10 encodes detail (Luma) into the phase/frequency to survive tape saturation, and color (Chroma) into the amplitude to allow graceful analog decay.
-
-For each audio sample t, extract the source pixels at [X_A, Y_A] and [X_B, Y_B]. Convert these pixels to YUV_A and YUV_B, scaled to [0.0, 1.0].
-
-**1. FM Luma Calculation:**
-Calculate the instantaneous frequency for both spirals:
-f_A(t) = f_min + Y_A * (f_max - f_min)
-f_B(t) = f_min + Y_B * (f_max - f_min)
-
-Calculate the continuous phase integral (to prevent waveform clicking/discontinuities):
-Phi_A(t) = 2 * PI * Integral(0 to t) of f_A(tau) d_tau
-Phi_B(t) = 2 * PI * Integral(0 to t) of f_B(tau) d_tau
-
-**2. AM Chroma Calculation:**
-Map the U and V color channels to the amplitude envelope. (To prevent the audio wave from flattening to 0V, A must never drop below 0.1).
-Env_A(t) = A_min + U_A * (A_max - A_min)
-Env_B(t) = A_min + V_B * (A_max - A_min)
-
-**3. Final Waveform Assembly:**
-Signal_Left(t) = Env_A(t) * sin(Phi_A(t))
-Signal_Right(t) = Env_B(t) * sin(Phi_B(t))
-
-## 4. Synchronization Protocol
-To signal the start of a new frame and force the decoder to reset p=0, an absolute sync pulse is prepended to the beginning of every frame's audio data.
-
-* **Duration:** First 5 ms of the frame (240 samples at 48 kHz).
-* **Waveform:** Pure 1,000 Hz sine wave at 1.0 amplitude on BOTH channels.
-* **Constraint:** During this 5 ms window, no image data is encoded. The coordinate mapping p calculation effectively begins after this pulse.
-
-## 5. Encoder Implementation Logic
-**Input:** Sequence of RGB image matrices (W x H) at 10 fps.
-**Output:** Continuous Stereo Float32 audio array [-1.0, 1.0].
-
-1. **Initialize:** Set a global phase accumulator for Left and Right channels to 0.0.
-2. **For each Image Frame:**
-   * Generate a 5 ms sync pulse (1000 Hz) on both channels and append to the output stream.
-   * Convert the RGB image to YUV space.
-   * For sample i from 240 to 4799:
-     * Calculate geometry X_A, Y_A and X_B, Y_B.
-     * Sample the YUV values at those coordinates.
-     * Calculate instantaneous frequency f_A, f_B. Add to the global phase accumulators.
-     * Calculate envelopes Env_A, Env_B.
-     * Generate the specific audio sample values using the phase and envelope.
-     * Append the stereo sample to the output stream.
-
-## 6. Decoder Implementation Logic
-**Input:** Continuous Stereo audio array (stream or file).
-**Output:** Sequence of RGB image matrices (W x H) at 10 fps.
-
-1. **Sync Detection:** Monitor the Left channel. Apply a narrow bandpass filter at 1,000 Hz. When a threshold is met for >3 ms, flag "Frame Sync" and initialize an empty black image matrix.
-2. **Sample Processing:** For incoming samples following the sync pulse:
-   * Calculate X_A, Y_A and X_B, Y_B based on the sample index i since the sync pulse.
-   * **Demodulate Luma (FM):** Use a Zero-Crossing Detector or Hilbert Transform to measure the instantaneous frequency of the Left and Right signals. Map frequencies [3000, 12000] to Luma [0.0, 1.0].
-   * **Demodulate Chroma (AM):** Run the audio signal through a digital absolute value function, followed by a low-pass filter (Leaky Integrator) to extract the amplitude envelope. Map amplitudes [0.1, 1.0] to U and V [0.0, 1.0].
-   * Write the resulting YUV values to the image matrix at the computed coordinates.
-3. **Frame Completion:** Upon receiving the next 1,000 Hz sync pulse, optionally apply a rapid morphological dilation to the image matrix to fill the microscopic gaps between the spiral lines, convert YUV back to RGB, and emit the finished frame.
+## 5. Decoder (reference)
+1. **Resample** to 48 kHz.
+2. **Demodulate** each channel with a 63-tap Hilbert transformer: z = x + j·H{x}; instantaneous frequency = arg(zₙ·z*ₙ₋₁)·fs/2π, amplitude = |z|; 5-tap Hann smoothing; delays compensated.
+3. **Sync**: sliding 240-sample complex correlation with 1 kHz on both channels. ratio = 2(|S_L|² + |S_R|²) / (240·energy) > 0.55 for ≥ 48 samples ⇒ pulse. Position = centroid of the correlation peak; frequency offset from the phase advance between window halves gives a first speed estimate.
+4. **Flywheel**: frames are rendered on a clock of period P (nominally 4800 samples). A sync within ±6 % (locked) / ±2 % (unlocked) of the predicted start snaps the phase and refines P from sync-to-sync intervals (speed s = 4800/P). Missing syncs decay the lock; an unlocked flywheel re-acquires on the next sync. Exactly one frame is produced per period whatever the input ⇒ constant frame rate.
+5. **Calibration** (locked frames): average the demodulated amplitude of CAL-HI and CAL-LO in 8 bins *of measured frequency* (immune to channel group delay) ⇒ per-frequency gain G(f) and compression γ(f) = ln(L/G)/ln 0.35. Chroma is equalised as A = (a/G(f))^(1/γ(f)).
+6. **Render**: for picture sample j read the demodulated stream at start + (456 + j)/s (twice per sample, interpolated), Y = (f/s − F_MIN)/(F_MAX − F_MIN), U/V from equalised amplitude. Gaussian-splat luma (σ = 2 px, both arms) and chroma (σ = 4.5 px, half-resolution grid, one arm each), normalise, push-pull fill holes, convert to RGB. Optional phosphor persistence.
+7. **Noise mode** (unlocked frames): chroma shows loudness relative to the frame mean, 0.5 + 0.48·tanh(2·ln(a/ā)), so any audio becomes colourful spiral noise at the same 10 fps.

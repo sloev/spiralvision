@@ -24,20 +24,14 @@ android {
 
     signingConfigs {
         create("release") {
-            // CI signs with a keystore from secrets when present, otherwise
-            // the release APK is signed with the debug key so it installs.
+            // scripts/package-android.sh always provides a keystore
+            // (your release key from secrets, or a throwaway key).
             val ks = System.getenv("ANDROID_KEYSTORE")
-            if (ks != null && file(ks).exists()) {
+            if (ks != null) {
                 storeFile = file(ks)
                 storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("ANDROID_KEY_ALIAS")
                 keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
-            } else {
-                val dbg = signingConfigs.getByName("debug")
-                storeFile = dbg.storeFile
-                storePassword = dbg.storePassword
-                keyAlias = dbg.keyAlias
-                keyPassword = dbg.keyPassword
             }
         }
     }
@@ -45,7 +39,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            if (System.getenv("ANDROID_KEYSTORE") != null) signingConfig = signingConfigs.getByName("release")
         }
     }
 

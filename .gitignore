@@ -3,3 +3,4 @@
 .DS_Store
 /*.wav
 /*.mp4
+/dist

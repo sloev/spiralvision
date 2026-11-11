@@ -1,10 +1,10 @@
-name: CI
+name: Build & Release
 
+# Runs ONLY when you ask: push a tag like v0.2.0, or click "Run workflow".
+# Day-to-day checks run locally with ./scripts/check.sh (saves Actions minutes).
 on:
   push:
-    branches: ["**"]
-  pull_request:
-    branches: ["master"]
+    tags: ["v*"]
   workflow_dispatch:
 
 env:
@@ -15,90 +15,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  linux:
+    # x86_64 native + Raspberry Pi aarch64 cross-compiled (same steps as local).
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: System deps
+      - name: System deps (+ arm64 ALSA for the Pi build)
         run: |
+          sudo dpkg --add-architecture arm64
+          sudo sed -i '/^Types: deb$/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
+          printf 'Types: deb\nURIs: http://ports.ubuntu.com/ubuntu-ports/\nSuites: noble noble-updates\nComponents: main universe\nArchitectures: arm64\n' | sudo tee /etc/apt/sources.list.d/arm64-ports.sources
           sudo apt-get update
-          sudo apt-get install -y ffmpeg libasound2-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libfontconfig1-dev
+          sudo apt-get install -y ffmpeg libasound2-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libfontconfig1-dev \
+            gcc-aarch64-linux-gnu libasound2-dev:arm64 python3-pil
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-unknown-unknown
+          targets: wasm32-unknown-unknown,aarch64-unknown-linux-gnu
           components: rustfmt
       - uses: swatinem/rust-cache@v2
-      - name: Format
-        run: cargo fmt --all -- --check
-      - name: Tests (core DSP, tape sim, constant frame rate)
-        run: cargo test --workspace --release
-      - name: Build WASM
-        run: ./scripts/build-wasm.sh
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: WASM smoke test
-        run: node scripts/wasm-smoke.mjs
-      - name: CLI round trip through simulated cassette
-        run: ./target/release/spiralvision-cli bench -f lavfi testsrc2=s=320x240:r=10 -t 3 --tape 1
+      - name: Checks (fmt, tests, wasm, smoke, bench)
+        run: ./scripts/check.sh
+      - name: Package x86_64
+        run: ./scripts/package-linux.sh x86_64
+      - name: Build + package Raspberry Pi (aarch64)
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+          PKG_CONFIG_ALLOW_CROSS: "1"
+          PKG_CONFIG_PATH: /usr/lib/aarch64-linux-gnu/pkgconfig
+          PKG_CONFIG_SYSROOT_DIR: /
+        run: |
+          cargo build --release --target aarch64-unknown-linux-gnu -p spiralvision -p spiralvision-cli
+          ./scripts/package-linux.sh aarch64 target/aarch64-unknown-linux-gnu
       - uses: actions/upload-artifact@v4
         with:
-          name: web
-          path: docs/wasm/spiralvision.wasm
-
-  linux:
-    needs: test
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: ubuntu-22.04
-            arch: x86_64
-          - runner: ubuntu-22.04-arm
-            arch: aarch64
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: System deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libasound2-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libfontconfig1-dev imagemagick file
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.arch }}
-      - name: Build
-        run: cargo build --release -p spiralvision -p spiralvision-cli
-      - name: Package tarball
-        run: |
-          D=spiralvision-linux-${{ matrix.arch }}
-          mkdir -p $D
-          cp target/release/spiralvision target/release/spiralvision-cli README.md $D/
-          cp .github/assets/icon-1024.png $D/spiralvision.png
-          tar czf $D.tar.gz $D
-      - name: AppImage
-        run: |
-          ARCH=${{ matrix.arch }}
-          mkdir -p AppDir/usr/bin AppDir/usr/share/icons/hicolor/256x256/apps
-          cp target/release/spiralvision target/release/spiralvision-cli AppDir/usr/bin/
-          convert .github/assets/icon-1024.png -resize 256x256 AppDir/spiralvision.png
-          cp AppDir/spiralvision.png AppDir/.DirIcon
-          cp AppDir/spiralvision.png AppDir/usr/share/icons/hicolor/256x256/apps/spiralvision.png
-          printf '[Desktop Entry]\nName=SpiralVision\nExec=spiralvision\nIcon=spiralvision\nType=Application\nCategories=AudioVideo;\n' > AppDir/spiralvision.desktop
-          printf '#!/bin/sh\nHERE="$(dirname "$(readlink -f "$0")")"\nexport PATH="$HERE/usr/bin:$PATH"\nexec spiralvision "$@"\n' > AppDir/AppRun
-          chmod +x AppDir/AppRun
-          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$ARCH.AppImage -O appimagetool
-          chmod +x appimagetool
-          ARCH=$ARCH ./appimagetool --appimage-extract-and-run AppDir SpiralVision-$ARCH.AppImage
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-${{ matrix.arch }}
+          name: linux
           path: |
-            spiralvision-linux-${{ matrix.arch }}.tar.gz
-            SpiralVision-${{ matrix.arch }}.AppImage
+            dist/*.tar.gz
+            dist/*.AppImage
 
   windows:
-    needs: test
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -109,16 +67,15 @@ jobs:
       - name: Package
         shell: pwsh
         run: |
-          New-Item -ItemType Directory spiralvision-windows-x86_64 | Out-Null
-          Copy-Item target/release/spiralvision.exe, target/release/spiralvision-cli.exe, README.md spiralvision-windows-x86_64/
-          Compress-Archive -Path spiralvision-windows-x86_64 -DestinationPath spiralvision-windows-x86_64.zip
+          New-Item -ItemType Directory dist/spiralvision-windows-x86_64 -Force | Out-Null
+          Copy-Item target/release/spiralvision.exe, target/release/spiralvision-cli.exe, README.md dist/spiralvision-windows-x86_64/
+          Compress-Archive -Path dist/spiralvision-windows-x86_64 -DestinationPath dist/spiralvision-windows-x86_64.zip
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: spiralvision-windows-x86_64.zip
+          path: dist/spiralvision-windows-x86_64.zip
 
   macos:
-    needs: test
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -131,49 +88,15 @@ jobs:
           for t in aarch64-apple-darwin x86_64-apple-darwin; do
             cargo build --release --target $t -p spiralvision -p spiralvision-cli
           done
-          mkdir -p universal
-          for b in spiralvision spiralvision-cli; do
-            lipo -create target/aarch64-apple-darwin/release/$b target/x86_64-apple-darwin/release/$b -output universal/$b
-          done
       - name: Bundle .app
-        run: |
-          APP=SpiralVision.app
-          mkdir -p $APP/Contents/MacOS $APP/Contents/Resources icon.iconset
-          cp universal/spiralvision universal/spiralvision-cli $APP/Contents/MacOS/
-          for s in 16 32 128 256 512; do
-            sips -z $s $s .github/assets/icon-1024.png --out icon.iconset/icon_${s}x${s}.png >/dev/null
-            sips -z $((s*2)) $((s*2)) .github/assets/icon-1024.png --out icon.iconset/icon_${s}x${s}@2x.png >/dev/null
-          done
-          iconutil -c icns icon.iconset -o $APP/Contents/Resources/SpiralVision.icns
-          cat > $APP/Contents/Info.plist <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0"><dict>
-            <key>CFBundleName</key><string>SpiralVision</string>
-            <key>CFBundleDisplayName</key><string>SpiralVision</string>
-            <key>CFBundleIdentifier</key><string>com.sloev.spiralvision</string>
-            <key>CFBundleExecutable</key><string>spiralvision</string>
-            <key>CFBundleIconFile</key><string>SpiralVision</string>
-            <key>CFBundlePackageType</key><string>APPL</string>
-            <key>CFBundleShortVersionString</key><string>0.2.${{ github.run_number }}</string>
-            <key>CFBundleVersion</key><string>${{ github.run_number }}</string>
-            <key>LSMinimumSystemVersion</key><string>11.0</string>
-            <key>NSHighResolutionCapable</key><true/>
-            <key>NSCameraUsageDescription</key><string>SpiralVision encodes your camera into cassette audio.</string>
-            <key>NSMicrophoneUsageDescription</key><string>SpiralVision decodes video from your tape deck's line in.</string>
-          </dict></plist>
-          EOF
-          sed -i '' 's/^          //' $APP/Contents/Info.plist
-          codesign --force --deep -s - $APP
-          ditto -c -k --keepParent $APP SpiralVision-macos-universal.zip
+        run: ./scripts/package-macos.sh "${GITHUB_REF_NAME#v}"
       - uses: actions/upload-artifact@v4
         with:
           name: macos
-          path: SpiralVision-macos-universal.zip
+          path: dist/SpiralVision-macos-universal.zip
 
   android:
-    needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -188,66 +111,34 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.14.3"
-      - name: Signing key
-        env:
-          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > $RUNNER_TEMP/release.jks
-            echo "ANDROID_KEYSTORE=$RUNNER_TEMP/release.jks" >> $GITHUB_ENV
-          else
-            mkdir -p ~/.android
-            [ -f ~/.android/debug.keystore ] || keytool -genkeypair -keystore ~/.android/debug.keystore -storepass android \
-              -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          fi
       - name: Build APK
         env:
           VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: 0.2.${{ github.run_number }}
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          gradle -p android --no-daemon assembleRelease
-          cp android/app/build/outputs/apk/release/app-release.apk SpiralVision-android.apk
+        run: VERSION_NAME="${GITHUB_REF_NAME#v}" ./scripts/package-android.sh
       - uses: actions/upload-artifact@v4
         with:
           name: android
-          path: SpiralVision-android.apk
+          path: dist/SpiralVision-android.apk
 
   release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: [linux, windows, macos, android]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
-      - name: Release notes
-        run: |
-          cat > notes.md <<'EOF'
-          ## SPIRALVISION-10 // fresh off the tape deck
-
-          | Platform | Download |
-          |---|---|
-          | Raspberry Pi (64-bit Pi OS) | `spiralvision-linux-aarch64.tar.gz` / `SpiralVision-aarch64.AppImage` |
-          | Linux x86_64 | `SpiralVision-x86_64.AppImage` / `spiralvision-linux-x86_64.tar.gz` |
-          | Windows | `spiralvision-windows-x86_64.zip` |
-          | macOS (universal) | `SpiralVision-macos-universal.zip` (unsigned: right-click > Open the first time) |
-          | Android | `SpiralVision-android.apk` (sideload) |
-          | Web / PWA | https://sloev.github.io/spiralvision/ |
-
-          Desktop apps and `spiralvision-cli` need **ffmpeg** on your PATH for cameras and video files.
-          Linux also needs ALSA: `sudo apt install ffmpeg libasound2`.
-          EOF
-          sed -i 's/^          //' notes.md
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.2.${{ github.run_number }}
-          name: SpiralVision v0.2.${{ github.run_number }}
-          body_path: notes.md
+          name: SpiralVision ${{ github.ref_name }}
+          body_path: .github/release-notes.md
           make_latest: true
           files: dist/*

@@ -1,6 +1,6 @@
 # <img src=".github/assets/icon-1024.png" width="48" align="left"> SPIRALVISION-10
 
-[![CI](https://github.com/sloev/spiralvision/actions/workflows/ci.yml/badge.svg)](https://github.com/sloev/spiralvision/actions/workflows/ci.yml)
+[![Build & Release](https://github.com/sloev/spiralvision/actions/workflows/ci.yml/badge.svg)](https://github.com/sloev/spiralvision/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/sloev/spiralvision?color=ff2bd6)](https://github.com/sloev/spiralvision/releases/latest)
 
 **YO!!!** 10 fps colour video crammed into a plain **stereo audio** signal. Dub it to a **cassette**. Rewind. Play. Watch it come back as a **NEON SPIRAL**. Tracking error? **That's art, dude.**
@@ -82,7 +82,33 @@ cargo run --release -p spiralvision-cli   # CLI
 cargo test --workspace --release          # DSP + tape + frame-rate tests
 ./scripts/build-wasm.sh                   # core -> docs/wasm/spiralvision.wasm
 ./scripts/make-demos.sh                   # regenerate docs/videos
-gradle -p android assembleDebug           # Android APK (needs the Android SDK)
+./scripts/check.sh                        # EVERYTHING the CI checks, locally (fmt, tests, wasm, bench, actionlint)
+./scripts/package-linux.sh x86_64         # tarball + AppImage into dist/
+./scripts/package-android.sh              # Android APK into dist/ (needs ANDROID_HOME + gradle)
+```
+
+### Releasing (saves GitHub Actions minutes)
+
+CI does **not** run on pushes. Run `./scripts/check.sh` locally, then push a tag:
+
+```bash
+git tag v0.2.0 && git push origin v0.2.0   # builds Linux, Pi, Windows, macOS, Android + publishes the release
+```
+
+Or press *Run workflow* on the Actions tab to build artifacts without releasing.
+Optional Android signing secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` (otherwise a throwaway debug key signs the APK).
+
+Cross-compiling locally (how the release builds were verified):
+
+```bash
+# Raspberry Pi (aarch64) from x86_64 Ubuntu 24.04
+sudo dpkg --add-architecture arm64   # + ports.ubuntu.com arm64 source, see .github/workflows/ci.yml
+sudo apt install gcc-aarch64-linux-gnu libasound2-dev:arm64
+CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc PKG_CONFIG_ALLOW_CROSS=1 \
+  PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig PKG_CONFIG_SYSROOT_DIR=/ \
+  cargo build --release --target aarch64-unknown-linux-gnu
+# Windows from Linux
+sudo apt install mingw-w64 && cargo build --release --target x86_64-pc-windows-gnu
 ```
 
 Repository layout:

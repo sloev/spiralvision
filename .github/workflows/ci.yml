@@ -47,6 +47,8 @@ jobs:
       - name: Package x86_64
         run: ./scripts/package-linux.sh x86_64
       - name: Build + package Raspberry Pi (aarch64, cross-compiled)
+        env:
+          APPIMAGE_OPTIONAL: "1"
         run: ./scripts/package-linux.sh aarch64
       - uses: actions/upload-artifact@v4
         with:

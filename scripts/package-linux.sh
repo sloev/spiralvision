@@ -33,6 +33,9 @@ printf '#!/bin/sh\nHERE="$(dirname "$(readlink -f "$0")")"\nexport PATH="$HERE/u
 chmod +x AppDir/AppRun
 TOOL=dist/appimagetool-$(uname -m)
 [ -x "$TOOL" ] || { curl -sSL -o "$TOOL" "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage"; chmod +x "$TOOL"; }
-ARCH=$ARCH "$TOOL" --appimage-extract-and-run AppDir dist/SpiralVision-$ARCH.AppImage >/dev/null
+if ! ARCH=$ARCH "$TOOL" --appimage-extract-and-run AppDir dist/SpiralVision-$ARCH.AppImage >/dev/null; then
+  if [ "${APPIMAGE_OPTIONAL:-}" = 1 ]; then echo "warning: AppImage for $ARCH skipped"; rm -rf AppDir; exit 0; fi
+  exit 1
+fi
 rm -rf AppDir
 ls -l dist/$D.tar.gz dist/SpiralVision-$ARCH.AppImage

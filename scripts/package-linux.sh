@@ -1,9 +1,20 @@
 #!/usr/bin/env bash
-# Package Linux builds: tarball + AppImage. Usage: package-linux.sh <arch> [target-dir]
-# arch: x86_64 | aarch64. Expects binaries in <target-dir>/release (default: target).
+# Build + package Linux: tarball + AppImage. Usage: package-linux.sh <x86_64|aarch64>
+# aarch64 is cross-compiled on x86_64 (needs scripts/apt-arm64.sh + gcc-aarch64-linux-gnu).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-ARCH=$1; BIN=${2:-target}/release
+ARCH=$1
+# Build what we package (never rely on a previous build).
+if [ "$ARCH" = "$(uname -m)" ]; then
+  cargo build --release -p spiralvision -p spiralvision-cli
+  BIN=target/release
+else
+  T=$ARCH-unknown-linux-gnu
+  export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc PKG_CONFIG_ALLOW_CROSS=1 \
+    PKG_CONFIG_PATH=/usr/lib/$ARCH-linux-gnu/pkgconfig PKG_CONFIG_SYSROOT_DIR=/
+  cargo build --release --target $T -p spiralvision -p spiralvision-cli
+  BIN=target/$T/release
+fi
 D=spiralvision-linux-$ARCH
 rm -rf dist/$D AppDir && mkdir -p dist/$D
 cp $BIN/spiralvision $BIN/spiralvision-cli README.md dist/$D/

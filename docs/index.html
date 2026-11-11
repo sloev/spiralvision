@@ -1,250 +1,203 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SpiralVision-10: THE ANALOG REVOLUTION</title>
-    <style>
-        :root {
-            --metal-silver: #c0c0c0;
-            --metal-dark: #333;
-            --neon-pink: #ff00ff;
-            --neon-cyan: #00ffff;
-            --neon-yellow: #ffff00;
-            --walkman-blue: #0a2e5c;
-        }
-
-        @font-face {
-            font-family: 'Retro';
-            src: local('Courier New'), local('Courier');
-        }
-
-        body {
-            background: radial-gradient(circle, #222, #000);
-            color: white;
-            font-family: 'Retro', monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            overflow-x: hidden;
-            background-image: 
-                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            background-size: 100% 4px, 3px 100%;
-        }
-
-        .container {
-            width: 90%;
-            max-width: 800px;
-            text-align: center;
-            border: 8px solid var(--metal-silver);
-            padding: 40px;
-            background-color: var(--walkman-blue);
-            box-shadow: 20px 20px 0px rgba(0,0,0,0.5), inset 2px 2px 10px rgba(255,255,255,0.2);
-            border-radius: 20px;
-            position: relative;
-        }
-
-        .header {
-            background-color: var(--metal-silver);
-            color: black;
-            padding: 10px;
-            font-weight: bold;
-            font-size: 2.5em;
-            text-transform: uppercase;
-            letter-spacing: 5px;
-            margin-bottom: 20px;
-            box-shadow: 4px 4px 0 var(--metal-dark);
-            transform: skew(-5deg);
-        }
-
-        .sub-header {
-            color: var(--neon-yellow);
-            font-style: italic;
-            font-size: 1.2em;
-            margin-bottom: 30px;
-        }
-
-        .void-message {
-            background: black;
-            padding: 20px;
-            border: 2px dashed var(--neon-cyan);
-            margin: 20px 0;
-            line-height: 1.6;
-        }
-
-        .void-message h2 {
-            color: var(--neon-pink);
-            margin-top: 0;
-        }
-
-        .video-wrapper {
-            position: relative;
-            padding-bottom: 56.25%; /* 16:9 */
-            height: 0;
-            border: 4px solid var(--metal-silver);
-            box-shadow: 0 0 20px var(--neon-cyan);
-            margin: 30px 0;
-            background: #000;
-        }
-
-        .video-wrapper iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-        }
-
-        .feature-box {
-            background: rgba(0,0,0,0.4);
-            border: 2px solid var(--metal-silver);
-            padding: 15px;
-            transition: transform 0.2s;
-        }
-
-        .feature-box:hover {
-            transform: scale(1.05) rotate(2deg);
-            background: rgba(255, 0, 255, 0.1);
-            border-color: var(--neon-pink);
-        }
-
-        .feature-box h3 {
-            color: var(--neon-cyan);
-            margin-top: 0;
-        }
-
-        .cta-button {
-            display: inline-block;
-            background-color: var(--neon-yellow);
-            color: black;
-            padding: 20px 40px;
-            font-size: 1.5em;
-            font-weight: bold;
-            text-decoration: none;
-            border-radius: 50px;
-            margin-top: 20px;
-            box-shadow: 5px 5px 0 var(--metal-dark);
-            transition: all 0.1s;
-        }
-
-        .cta-button:active {
-            transform: translate(3px, 3px);
-            box-shadow: 2px 2px 0 var(--metal-dark);
-        }
-
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 40px;
-            border-top: 2px solid rgba(255,255,255,0.2);
-            padding-top: 20px;
-        }
-
-        .btn {
-            width: 50px;
-            height: 30px;
-            background: var(--metal-silver);
-            border: none;
-            border-radius: 3px;
-            box-shadow: 2px 2px 0 #555;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.8em;
-        }
-
-        .gen-z-pitch {
-            margin-top: 40px;
-            font-style: italic;
-            opacity: 0.8;
-            font-size: 0.9em;
-        }
-
-        @keyframes flicker {
-            0% { opacity: 0.97; }
-            5% { opacity: 0.95; }
-            10% { opacity: 0.9; }
-            15% { opacity: 0.99; }
-            20% { opacity: 0.92; }
-            100% { opacity: 1; }
-        }
-
-        .scanline {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: rgba(255, 255, 255, 0.1);
-            z-index: 10;
-            pointer-events: none;
-            animation: move-down 4s linear infinite;
-        }
-
-        @keyframes move-down {
-            from { top: -5%; }
-            to { top: 105%; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>SPIRALVISION-10</title>
+  <meta name="description" content="SpiralVision-10: 10 fps colour video stored on stereo audio. Record it to a cassette tape, play it back, watch it spiral. Web app, PWA, Raspberry Pi, Linux, Windows, Mac and Android.">
+  <meta name="theme-color" content="#ff2bd6">
+  <meta property="og:title" content="SPIRALVISION-10 // video on cassette, totally">
+  <meta property="og:description" content="10 fps colour video encoded as stereo audio. Dub it to chrome. Watch it spiral.">
+  <meta property="og:image" content="icons/icon-512.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/favicon-64.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;600;700&family=Monoton&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="scanline"></div>
-    <div class="container">
-        <div class="header">SPIRALVISION-10</div>
-        <div class="sub-header">"Wait, is that a video or a cassette?" - YES.</div>
+<div class="tracking" aria-hidden="true"></div>
 
-        <div class="void-message">
-            <h2>🚨 ARE YOU TIRED OF CRYSTAL CLEAR 4K? 🚨</h2>
-            <p>Consumer electronics have left a HOLE in your soul! Everything is too smooth. Too perfect. Too boring. SpiralVision-10 fills that VOID with pure, analog-oriented, crunchy goodness.</p>
-        </div>
-
-        <div class="video-wrapper">
-            <iframe src="https://www.youtube.com/embed/k_lY_UmP844?autoplay=1&mute=1&loop=1&playlist=k_lY_UmP844" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-        </div>
-
-        <div class="features">
-            <div class="feature-box">
-                <h3>10 FPS REALNESS</h3>
-                <p>Because who needs 60? It's giving cinematic, it's giving intentional.</p>
-            </div>
-            <div class="feature-box">
-                <h3>AUDIO IS VIDEO</h3>
-                <p>Encoded into 2-channel stereo. Hear the pixels, feel the waveform. No cap.</p>
-            </div>
-            <div class="feature-box">
-                <h3>RASPBERRY PI READY</h3>
-                <p>Runs on a potato. Optimized for the real world (and the vibes).</p>
-            </div>
-        </div>
-
-        <div class="void-message">
-            <p>Stop living in a world of sterilized digital perfection. Embrace the lossy. Embrace the spiral. It's the aesthetic you didn't know you needed.</p>
-        </div>
-
-        <a href="https://github.com/sloev/spiralvision" class="cta-button">DOWNLOAD NOW (OR CLONE IT)</a>
-
-        <div class="controls">
-            <button class="btn">REW</button>
-            <button class="btn">PLAY</button>
-            <button class="btn">FF</button>
-            <button class="btn" style="background: red; color: white;">REC</button>
-            <button class="btn">STOP</button>
-        </div>
-
-        <div class="gen-z-pitch">
-            Main character energy for your video signals. Fr fr. 💿✨
-        </div>
+<nav class="top">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="icons/icon-192.png" alt=""><span>SPIRALVISION-10</span></a>
+    <div class="links">
+      <a href="#demos">DEMO TAPES</a>
+      <a href="#deck">THE DECK</a>
+      <a href="#how">HOW</a>
+      <a href="#get">GET IT</a>
     </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <canvas id="tunnel" aria-hidden="true"></canvas>
+  <div class="inner">
+    <h1>SPIRAL<br>VISION<span class="ten">-10</span></h1>
+    <div class="tag">VIDEO ON CASSETTE. TOTALLY.</div>
+    <p class="lede"><b>YO!!!</b> Colour video, <b>10 frames a second</b>, crammed into a plain <b>stereo audio</b> signal.
+      Dub it to a <b>chrome cassette</b>. Rewind. Play. Watch it come back out of the tape deck as a
+      <b>NEON SPIRAL</b>. Tracking error? <b>THAT'S ART, DUDE.</b></p>
+    <div class="cta-row">
+      <a class="btn" href="#demos">▶ PLAY THE DEMO TAPES</a>
+      <a class="btn cyan" href="#deck">⏺ LAUNCH THE DECK</a>
+      <a class="btn chrome" href="#get">⬇ GET THE APP</a>
+    </div>
+  </div>
+</header>
+
+<div class="marquee" aria-hidden="true"><span>★ NOW PLAYING IN THE FOOD COURT ★ SIDE A: PURE SPIRAL ★ SIDE B: MORE SPIRAL ★ 1 kHz SYNC • FM LUMA • AM CHROMA ★ WORKS ON CASSETTE ★ RASPBERRY PI • LINUX • WINDOWS • MAC • ANDROID • WEB ★ TRACKING ERROR = ART ★ PRETZELS 2-FOR-1 UNTIL 9:47 PM ★</span></div>
+
+<!-- ================= DEMO TAPES ================= -->
+<section id="demos">
+  <div class="wrap">
+    <h2>DEMO TAPES</h2>
+    <p class="kicker">// drag the slider: ORIGINAL ◀ ▶ SPIRALVISION (after a worn-out cassette)</p>
+    <div class="tapes" id="tapes" role="tablist"></div>
+    <div class="chrome-frame">
+      <div class="compare" id="compare" style="--split:50%">
+        <video class="before" id="vBefore" muted playsinline loop preload="metadata"></video>
+        <video class="after" id="vAfter" muted playsinline loop preload="metadata"></video>
+        <div class="divider"></div>
+        <div class="knob">◀▶</div>
+        <div class="tagL">ORIGINAL</div>
+        <div class="tagR">SPIRALVISION</div>
+      </div>
+    </div>
+    <div class="compare-controls">
+      <input type="range" id="split" min="0" max="100" value="50" aria-label="Before / after split">
+      <button class="btn small yellow" id="demoPlay">❚❚ PAUSE</button>
+      <button class="btn small cyan" id="demoSound">🔊 HEAR THE TAPE</button>
+    </div>
+    <div class="demo-caption" id="demoCaption"></div>
+  </div>
+</section>
+
+<!-- ================= THE DECK ================= -->
+<section id="deck">
+  <div class="wrap">
+    <h2>THE DECK</h2>
+    <p class="kicker">// the real encoder + decoder, running right here via WebAudio + WebAssembly</p>
+    <div class="deck">
+      <div class="panel">
+        <div class="screens">
+          <div class="screen" id="screenA"><canvas id="cvSrc" width="320" height="240"></canvas><span class="lbl a">SIDE A: SOURCE</span></div>
+          <div class="screen" id="screenB"><canvas id="cvOut" width="320" height="240"></canvas><span class="lbl b">SIDE B: SPIRALVISION</span></div>
+        </div>
+        <div class="hud">
+          <span class="pill" id="hudLock">STOPPED</span>
+          <span class="pill" id="hudSpeed">SPEED —</span>
+          <span class="pill" id="hudFps">0.0 FPS</span>
+          <span class="pill" id="hudFrames">FRAME 0</span>
+        </div>
+        <div class="loading-tape" id="loading"><i></i></div>
+      </div>
+      <div class="panel controls">
+        <label>MODE</label>
+        <div class="seg" id="modeSeg">
+          <button data-mode="loop" aria-pressed="true">⟲ LOOPBACK</button>
+          <button data-mode="enc" aria-pressed="false">⏺ ENCODE</button>
+          <button data-mode="dec" aria-pressed="false">▶ DECODE</button>
+        </div>
+        <p class="note" id="modeNote"></p>
+        <div id="srcBox">
+          <label>VIDEO SOURCE</label>
+          <div class="seg" id="srcSeg">
+            <button data-src="pattern" aria-pressed="true">✦ TEST PATTERN</button>
+            <button data-src="camera" aria-pressed="false">📷 CAMERA</button>
+            <button data-src="file" aria-pressed="false">📼 VIDEO FILE</button>
+          </div>
+          <input type="file" id="videoFile" accept="video/*,image/*" hidden>
+        </div>
+        <div id="inBox" hidden>
+          <label>TAPE IN</label>
+          <div class="seg" id="inSeg">
+            <button data-in="mic" aria-pressed="true">🎤 LINE IN / MIC</button>
+            <button data-in="file" aria-pressed="false">💾 AUDIO FILE</button>
+          </div>
+          <input type="file" id="audioFile" accept="audio/*,.wav" hidden>
+        </div>
+        <div id="wearBox">
+          <label>TAPE WEAR</label>
+          <div class="knob-row"><input type="range" id="wear" min="0" max="2" step="0.05" value="1"><span id="wearVal">1.00</span></div>
+        </div>
+        <label>PHOSPHOR</label>
+        <div class="knob-row"><input type="range" id="persist" min="0" max="0.95" step="0.05" value="0"><span id="persistVal">0.00</span></div>
+        <label>COLOR</label>
+        <div class="knob-row"><input type="range" id="sat" min="0" max="2.5" step="0.05" value="1"><span id="satVal">1.00</span></div>
+        <label><input type="checkbox" id="monitor"> MONITOR AUDIO (it screams, dude)</label>
+        <div class="transport">
+          <button class="btn green" id="play">▶ PLAY</button>
+          <button class="btn red" id="rec" title="Record a .wav tape (encode) or a .webm video (decode/loopback)">⏺ REC</button>
+          <button class="btn small chrome" id="snap">📸 SNAP</button>
+        </div>
+        <canvas class="scope" id="scope" width="260" height="260" aria-label="Stereo XY oscilloscope"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HOW ================= -->
+<section id="how">
+  <div class="wrap">
+    <h2>HOW IT WORKS</h2>
+    <p class="kicker">// 4,800 samples per frame. no pixels were harmed.</p>
+    <div class="how-grid">
+      <div class="card c1"><span class="num">1</span><h3>THE SPIRAL</h3><p>Each frame is scanned by two interlaced spiral arms that morph from a circle to a 4:3 rectangle. Left channel rides arm A, right channel rides arm B.</p></div>
+      <div class="card c2"><span class="num">2</span><h3>FM LUMA</h3><p>Brightness is pitch: black = 3 kHz, white = 12 kHz. FM laughs at tape hiss and level wobble.</p></div>
+      <div class="card c3"><span class="num">3</span><h3>AM CHROMA</h3><p>Colour is loudness: U on the left, V on the right. A calibration chirp in every frame teaches the decoder your tape's treble loss.</p></div>
+      <div class="card c4"><span class="num">4</span><h3>1 kHz SYNC</h3><p>A beep starts every frame. A flywheel clock keeps 10 fps steady even when the tape stretches, drops out or is pure noise.</p></div>
+    </div>
+    <div class="scan-demo">
+      <div class="chrome-frame"><canvas id="scanCanvas" width="640" height="480" aria-label="Animated spiral scan path"></canvas></div>
+      <div>
+        <div class="framebar" aria-label="Frame layout">
+          <div class="s">SYNC<br>1 kHz</div><div class="c">CHIRP</div><div class="g"></div><div class="d">PICTURE · 2 × 4320 SAMPLES</div>
+        </div>
+        <ul class="spec-list">
+          <li>320 × 240, 10 fps, 48 kHz stereo</li>
+          <li>FM 3–12 kHz luma · AM 0.1–1.0 chroma</li>
+          <li>2.5→13 kHz two-level calibration chirp</li>
+          <li>quadrature (Hilbert) demodulator</li>
+          <li>flywheel sync: locks through ±8% speed error</li>
+          <li>noise in → spiral noise out, same 10 fps</li>
+        </ul>
+        <p class="note">Full nerd spec: <a href="https://github.com/sloev/spiralvision/blob/master/spec.md">spec.md</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DOWNLOADS ================= -->
+<section id="get">
+  <div class="wrap">
+    <h2>GET IT ON EVERY DECK</h2>
+    <p class="kicker">// one Rust DSP core. every platform. side A and side B.</p>
+    <div class="dl-grid">
+      <a class="dl pwa" href="#" id="installBtn"><span class="ico">📲</span><b>INSTALL THIS PAGE</b><span>PWA: works offline, any phone or laptop</span></a>
+      <a class="dl" href="https://github.com/sloev/spiralvision/releases/latest/download/spiralvision-linux-aarch64.tar.gz"><span class="ico">🍓</span><b>RASPBERRY PI</b><span>64-bit Pi OS · desktop + headless CLI</span></a>
+      <a class="dl" href="https://github.com/sloev/spiralvision/releases/latest/download/SpiralVision-x86_64.AppImage"><span class="ico">🐧</span><b>LINUX</b><span>AppImage · x86_64</span></a>
+      <a class="dl" href="https://github.com/sloev/spiralvision/releases/latest/download/spiralvision-windows-x86_64.zip"><span class="ico">🪟</span><b>WINDOWS</b><span>.exe · x86_64</span></a>
+      <a class="dl" href="https://github.com/sloev/spiralvision/releases/latest/download/SpiralVision-macos-universal.zip"><span class="ico">🍎</span><b>MAC</b><span>.app · Apple Silicon + Intel</span></a>
+      <a class="dl" href="https://github.com/sloev/spiralvision/releases/latest/download/SpiralVision-android.apk"><span class="ico">🤖</span><b>ANDROID</b><span>.apk · sideload it</span></a>
+    </div>
+    <pre class="cmd"># headless on a Pi: camera → line out → cassette deck
+spiralvision-cli encode -f v4l2 /dev/video0 default -F alsa
+# tape deck → line in → decoded video file
+spiralvision-cli decode -f alsa default rewind.mp4</pre>
+    <p class="note">Desktop + CLI use <b>ffmpeg</b> for cameras and video files. All builds: <a href="https://github.com/sloev/spiralvision/releases">github.com/sloev/spiralvision/releases</a></p>
+  </div>
+</section>
+
+<footer>
+  SPIRALVISION-10 · open source on <a href="https://github.com/sloev/spiralvision">GitHub</a> · be kind, rewind ⟲
+</footer>
+
+<script type="module" src="js/app.js"></script>
 </body>
 </html>

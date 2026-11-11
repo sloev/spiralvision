@@ -1,5 +1,5 @@
 pub mod app;
-pub mod decoder;
-pub mod encoder;
 pub mod io;
-pub mod protocol;
+
+/// Re-export the shared DSP core.
+pub use spiralvision_core as core;

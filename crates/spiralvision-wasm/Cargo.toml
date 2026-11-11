@@ -1,0 +1,11 @@
+[package]
+name = "spiralvision-wasm"
+version = "0.2.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+spiralvision-core = { path = "../spiralvision-core" }

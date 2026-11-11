@@ -1,116 +1,98 @@
-use std::process::{Command, Stdio};
+//! Sound card I/O via cpal. Any device rate/channel count is accepted:
+//! output is resampled from 48 kHz, input is handed to the decoder at its
+//! native rate (the decoder resamples internally).
+
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use crossbeam_channel::{Sender, Receiver};
-use crate::protocol::{W, H, AUDIO_RATE};
+use crossbeam_channel::{Receiver, Sender};
+use spiralvision_core::dsp::Resampler;
+use spiralvision_core::SAMPLE_RATE;
+use std::collections::VecDeque;
 
-pub fn start_ffmpeg_reader(input_path: &str, is_device: bool) -> Option<std::process::Child> {
-    let mut cmd = Command::new("ffmpeg");
-    cmd.arg("-hide_banner").arg("-loglevel").arg("error");
-    
-    if is_device {
-        cmd.arg("-f").arg("v4l2");
-    }
-    
-    cmd.arg("-i").arg(input_path)
-       .arg("-f").arg("rawvideo")
-       .arg("-pix_fmt").arg("rgb24")
-       .arg("-s").arg(format!("{}x{}", W, H))
-       .arg("-r").arg("10")
-       .arg("-")
-       .stdout(Stdio::piped())
-       .spawn()
-       .ok()
-}
-
-pub fn start_ffmpeg_writer(output_path: &str, is_device: bool) -> Option<std::process::Child> {
-    let mut cmd = Command::new("ffmpeg");
-    cmd.arg("-hide_banner").arg("-loglevel").arg("error")
-       .arg("-f").arg("rawvideo")
-       .arg("-pix_fmt").arg("rgb24")
-       .arg("-s").arg(format!("{}x{}", W, H))
-       .arg("-r").arg("10")
-       .arg("-i").arg("-");
-       
-    if is_device {
-        cmd.arg("-f").arg("v4l2").arg(output_path);
-    } else {
-        cmd.arg("-y").arg(output_path);
-    }
-    
-    cmd.stdin(Stdio::piped())
-       .spawn()
-       .ok()
-}
-
-pub fn start_audio_output(rx: Receiver<Vec<(f32, f32)>>) -> Option<cpal::Stream> {
+/// Play 48 kHz stereo blocks from `rx`. Returns the stream (keep it alive).
+pub fn start_audio_output(rx: Receiver<Vec<(f32, f32)>>) -> Result<cpal::Stream, String> {
     let host = cpal::default_host();
-    let device = host.default_output_device()?;
-    
-    let config = cpal::StreamConfig {
-        channels: 2,
-        sample_rate: cpal::SampleRate(AUDIO_RATE),
-        buffer_size: cpal::BufferSize::Default,
+    let device = host
+        .default_output_device()
+        .ok_or("no audio output device")?;
+    let cfg = device.default_output_config().map_err(|e| e.to_string())?;
+    let rate = cfg.sample_rate().0;
+    let channels = cfg.channels() as usize;
+    let config: cpal::StreamConfig = cfg.into();
+    let mut rs = if rate != SAMPLE_RATE {
+        Some(Resampler::new(SAMPLE_RATE as f32, rate as f32))
+    } else {
+        None
     };
-    
-    let mut buffer = Vec::new();
-    
-    let stream = device.build_output_stream(
-        &config,
-        move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-            let mut i = 0;
-            while i < data.len() {
-                if buffer.is_empty() {
-                    if let Ok(new_data) = rx.try_recv() {
-                        buffer.extend(new_data);
-                    } else {
-                        // Fill with silence if no data
-                        for j in i..data.len() {
-                            data[j] = 0.0;
+    let mut buf: VecDeque<(f32, f32)> = VecDeque::new();
+    let mut tmp = Vec::new();
+    let stream = device
+        .build_output_stream(
+            &config,
+            move |data: &mut [f32], _| {
+                let frames = data.len() / channels;
+                while buf.len() < frames {
+                    match rx.try_recv() {
+                        Ok(block) => {
+                            if let Some(r) = &mut rs {
+                                tmp.clear();
+                                for s in block {
+                                    r.push(s, &mut tmp);
+                                }
+                                buf.extend(tmp.iter().copied());
+                            } else {
+                                buf.extend(block);
+                            }
                         }
-                        break;
+                        Err(_) => break,
                     }
                 }
-                
-                let to_take = std::cmp::min((data.len() - i) / 2, buffer.len());
-                for _ in 0..to_take {
-                    let (l, r) = buffer.remove(0);
-                    data[i] = l;
-                    data[i+1] = r;
-                    i += 2;
+                for f in data.chunks_mut(channels) {
+                    let (l, r) = buf.pop_front().unwrap_or((0.0, 0.0));
+                    f[0] = l;
+                    if channels > 1 {
+                        f[1] = r;
+                    }
+                    for x in f.iter_mut().skip(2) {
+                        *x = 0.0;
+                    }
                 }
-            }
-        },
-        |err| eprintln!("Audio output error: {}", err),
-        None
-    ).ok()?;
-    
-    stream.play().ok()?;
-    Some(stream)
+            },
+            |e| eprintln!("audio output error: {e}"),
+            None,
+        )
+        .map_err(|e| e.to_string())?;
+    stream.play().map_err(|e| e.to_string())?;
+    Ok(stream)
 }
 
-pub fn start_audio_input(tx: Sender<Vec<(f32, f32)>>) -> Option<cpal::Stream> {
+/// Capture stereo blocks into `tx`. Returns (stream, sample rate).
+pub fn start_audio_input(tx: Sender<Vec<(f32, f32)>>) -> Result<(cpal::Stream, u32), String> {
     let host = cpal::default_host();
-    let device = host.default_input_device()?;
-    
-    let config = cpal::StreamConfig {
-        channels: 2,
-        sample_rate: cpal::SampleRate(AUDIO_RATE),
-        buffer_size: cpal::BufferSize::Default,
-    };
-    
-    let stream = device.build_input_stream(
-        &config,
-        move |data: &[f32], _: &cpal::InputCallbackInfo| {
-            let mut buf = Vec::with_capacity(data.len() / 2);
-            for chunk in data.chunks_exact(2) {
-                buf.push((chunk[0], chunk[1]));
-            }
-            let _ = tx.send(buf);
-        },
-        |err| eprintln!("Audio input error: {}", err),
-        None
-    ).ok()?;
-    
-    stream.play().ok()?;
-    Some(stream)
+    let device = host.default_input_device().ok_or("no audio input device")?;
+    let cfg = device.default_input_config().map_err(|e| e.to_string())?;
+    let rate = cfg.sample_rate().0;
+    let channels = cfg.channels() as usize;
+    let config: cpal::StreamConfig = cfg.into();
+    let stream = device
+        .build_input_stream(
+            &config,
+            move |data: &[f32], _| {
+                let block = data
+                    .chunks(channels)
+                    .map(|c| {
+                        if channels > 1 {
+                            (c[0], c[1])
+                        } else {
+                            (c[0], c[0])
+                        }
+                    })
+                    .collect();
+                let _ = tx.try_send(block);
+            },
+            |e| eprintln!("audio input error: {e}"),
+            None,
+        )
+        .map_err(|e| e.to_string())?;
+    stream.play().map_err(|e| e.to_string())?;
+    Ok((stream, rate))
 }

@@ -1,0 +1,14 @@
+[package]
+name = "spiralvision-core"
+version = "0.2.0"
+edition = "2021"
+description = "SpiralVision-10 encoder/decoder DSP (video over stereo audio)"
+license = "MIT"
+
+[features]
+default = []
+# ffmpeg/WAV helpers for native apps (not used by the WASM build)
+io = ["dep:hound"]
+
+[dependencies]
+hound = { version = "3.5", optional = true }

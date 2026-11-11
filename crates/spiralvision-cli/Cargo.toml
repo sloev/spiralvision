@@ -1,0 +1,12 @@
+[package]
+name = "spiralvision-cli"
+version = "0.2.0"
+edition = "2021"
+description = "Headless SpiralVision-10 encoder/decoder (great for Raspberry Pi)"
+
+[[bin]]
+name = "spiralvision-cli"
+path = "src/main.rs"
+
+[dependencies]
+spiralvision-core = { path = "../spiralvision-core", features = ["io"] }
